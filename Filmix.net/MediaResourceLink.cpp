@@ -224,7 +224,7 @@ void CreateSeriesFromPlaylist(THmsScriptMediaItem Folder, string sLink, string s
 ///////////////////////////////////////////////////////////////////////////////
 // Декодирование Base64 с предворительной очисткой от мусора
 string BaseDecode(string sData) {
-  string sData1, sHtml,sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4;
+  string sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4;
   HmsRegExMatch('#2(.*)', sData, sData);
   if(Garbage1==''){
     sPost = 'https://php-coder.cx.ua/filmix/key.php';
