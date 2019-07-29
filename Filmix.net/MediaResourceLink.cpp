@@ -222,9 +222,10 @@ void CreateSeriesFromPlaylist(THmsScriptMediaItem Folder, string sLink, string s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Декодирование Base64 с предворительной очисткой от мусора
 string BaseDecode(string sData) {
-  string sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4;
+  string sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4,Garbage5;
   HmsRegExMatch('#2(.*)', sData, sData);
   if(Garbage1==''){
     sPost = 'https://php-coder.cx.ua/filmix/key.php';
@@ -234,9 +235,9 @@ string BaseDecode(string sData) {
     HmsRegExMatch('"2":"([^"]+)"', sDomen, Garbage2);
     HmsRegExMatch('"3":"([^"]+)"' , sDomen, Garbage3);
     HmsRegExMatch('"4":"([^"]+)"' , sDomen, Garbage4);
-    
+    HmsRegExMatch('"5":"([^"]+)"' , sDomen, Garbage5);
     // Убираем перечисленный в массиве мусор за несколько проходов, ибо один мусор может быть разбавлен в середине другим  
-    Variant tr=['\\',Garbage1,Garbage2,Garbage3,Garbage4];
+    Variant tr=['\\',Garbage1,Garbage2,Garbage3,Garbage4,Garbage5];
     for (int n=0; n<3; n++) for (int i=0; i<Length(tr); i++) sData = ReplaceStr(sData, tr[i], '');
     string sResult = HmsBase64Decode(sData);
     return sResult;
