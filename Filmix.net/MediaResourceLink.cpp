@@ -260,7 +260,7 @@ void CreateLinks() {
   HmsRegExMatch('//(.*)', gsUrlBase, sServ);
   if (HmsRegExMatch('--quality=(\\d+)', mpPodcastParameters, sVal)) gnQual = StrToInt(sVal);
   if (HmsRegExMatch('(--keyfile)', mpPodcastParameters, '')){
-   sPost = 'https://php-coder.cx.ua/filmix/decode.php?link='+sID;
+   sPost = 'https://php-coder.cx.ua/filmix/decodes.php?link='+sID;
    HmsDownloadURL(sPost, 'Referer: https://php-coder.cx.ua/', true);
   }
   //POST https://filmix.co/api/episodes/get?post_id=103435&page=1  // episodes name
