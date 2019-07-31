@@ -259,7 +259,7 @@ void CreateLinks() {
  
   HmsRegExMatch('//(.*)', gsUrlBase, sServ);
   if (HmsRegExMatch('--quality=(\\d+)', mpPodcastParameters, sVal)) gnQual = StrToInt(sVal);
-  if (HmsRegExMatch('(--keyfile)', mpPodcastParameters, '')){
+  if (HmsRegExMatch('(--keyfiles)', mpPodcastParameters, '')){
    sPost = 'https://php-coder.cx.ua/filmix/decodes.php?link='+sID;
    HmsDownloadURL(sPost, 'Referer: https://php-coder.cx.ua/', true);
   }
