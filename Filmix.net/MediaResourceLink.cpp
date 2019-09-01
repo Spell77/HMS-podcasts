@@ -231,13 +231,13 @@ string BaseDecode(string sData) {
     sPost = 'https://php-coder.cx.ua/filmix/key.php';
     sDomen = HmsDownloadURL(sPost, 'Referer: https://php-coder.cx.ua/', true);
   }
-    HmsRegExMatch('"1":"([^"]+)"', sDomen, Garbage1);
-    HmsRegExMatch('"2":"([^"]+)"', sDomen, Garbage2);
-    HmsRegExMatch('"3":"([^"]+)"' , sDomen, Garbage3);
-    HmsRegExMatch('"4":"([^"]+)"' , sDomen, Garbage4);
-    HmsRegExMatch('"5":"([^"]+)"' , sDomen, Garbage5);
+    HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
+    HmsRegExMatch('"2":\\s"([^"]+)"' , sDomen, Garbage2);
+    HmsRegExMatch('"3":\\s"([^"]+)"' , sDomen, Garbage3);
+    HmsRegExMatch('"4":\\s"([^"]+)"' , sDomen, Garbage4);
+    HmsRegExMatch('"5":\\s"([^"]+)"' , sDomen, Garbage5);
     // Убираем перечисленный в массиве мусор за несколько проходов, ибо один мусор может быть разбавлен в середине другим  
-    Variant tr=['\\',Garbage1,Garbage2,Garbage3,Garbage4,Garbage5];
+    Variant tr=[Garbage1,Garbage2,Garbage3,Garbage4,Garbage5];
     for (int n=0; n<3; n++) for (int i=0; i<Length(tr); i++) sData = ReplaceStr(sData, tr[i], '');
     string sResult = HmsBase64Decode(sData);
     return sResult;
