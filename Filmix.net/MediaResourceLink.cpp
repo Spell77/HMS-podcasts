@@ -229,7 +229,7 @@ string BaseDecode(string sData) {
   HmsRegExMatch('#2(.*)', sData, sData);
   if(Garbage1==''){
     sPost = 'https://moon.cx.ua/filmix/key.php';
-    sDomen = HmsDownloadURL(sPost, 'Referer: https://php-coder.cx.ua/', true);
+    sDomen = HmsDownloadURL(sPost, 'Referer: '+mpFilePath, true);
   }
     HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
     HmsRegExMatch('"2":\\s"([^"]+)"' , sDomen, Garbage2);
