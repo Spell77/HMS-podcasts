@@ -228,7 +228,7 @@ string BaseDecode(string sData) {
   string sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4,Garbage5;
   HmsRegExMatch('#2(.*)', sData, sData);
   if(Garbage1==''){
-    sPost = 'http://moon.kl.com.ua/filmix/key.php';
+    sPost = 'https://moon.cx.ua/filmix/key.php';
     sDomen = HmsDownloadURL(sPost, 'Referer: '+mpFilePath, true);
   }
     HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
