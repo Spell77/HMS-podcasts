@@ -44,7 +44,7 @@ string Html5Decode(string sEncoded) {
 //////////////////////////////////////////////////////////////////////////////
 // Авторизация на сайте
 bool LoginToFilmix() {
-  string sName, sPass, sLink, sData, sPost, sRet, sDomen;
+  string sName,sNames, sPass, sLink, sData, sPost, sRet, sDomen;
   HmsRegExMatch('//([^/]+)', gsUrlBase, sDomen);
   int nPort = 443, nFlags = 0x10; // INTERNET_COOKIE_THIRD_PARTY;
   
@@ -57,10 +57,11 @@ bool LoginToFilmix() {
   
   sName = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationUserName)); // Логин
   sPass = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationPassword)); // Пароль
-  sPost = 'login_name='+sName+'&login_password='+sPass+'&login_not_save=0&login=submit';
-  sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
-  
-  if (!HmsRegExMatch('AUTHORIZED', sData, '')) {
+  sPost = 'login_name='+sName+'&login_password='+sPass+'&login_not_save=1&login=submit';
+  //sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
+  sData = HmsSendRequestEx(sDomen, '/', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
+  HmsRegExMatch('var dle_user_name="(.*?)";', sData, sNames);
+  if (sName != sNames) {
     ErrorItem('Не прошла авторизация на сайте '+sDomen+'. Неправильный логин/пароль?');
     return false;  
   }
@@ -68,6 +69,7 @@ bool LoginToFilmix() {
   return true;
 }
 
+////
 ///////////////////////////////////////////////////////////////////////////////
 // ---- Создание ссылки на видео ----------------------------------------------
 THmsScriptMediaItem AddMediaItem(THmsScriptMediaItem Folder, string sTitle, string sLink, string sGrp='') {
