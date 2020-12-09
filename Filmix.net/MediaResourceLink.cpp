@@ -364,15 +364,25 @@ void CreateLinks() {
   
   } else {
     // Если это запустили файл на просмотр, присваиваем MediaResourceLink значение ссылки на видео-файл 
-    if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
-      string sHtml = HmsDownloadURL(mpFilePath, 'Referer: '+gsHeaders);
-      if (HmsRegExMatch('"video5-link"\\s*value="(.*?)"', sHtml, MediaResourceLink))
-        MediaResourceLink = Html5Decode(MediaResourceLink);
-      string sQualSection='', sQual='';
-      if (HmsRegExMatch('(\\[.*?\\])', MediaResourceLink, sQualSection)) {      // Если в ссылке есть секция перечисления доступного качества в квадратных скобках
-        HmsRegExMatch('(\\d+)', sQualSection, sQual);                           // Берём первое качество в перечислении (обычно самое большое)
-        MediaResourceLink = ReplaceStr(MediaResourceLink, sQualSection, sQual); // Заменяем в ссылке секцию перечисления качеств на конкретное выбранное
+     if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
+      string sHtml, sData_Id, sData,sServ, sVal, sJson;
+      if (HmsRegExMatch(gsUrlBase+'/.*?/(\\d+)/trailers', mpFilePath, sData_Id))
+        HmsRegExMatch('//(.*)', gsUrlBase, sServ);
+      int nPort = 80; if (gbHttps) nPort = 443;
+      sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sData_Id, nPort, 16, sVal, true);
+      sData = HmsJsonDecode(sData); 
+      HmsRegExMatch('"trailers":\\s*\\{\s*".*?":\s*"(.*?)"', sData, sJson);
+      if (sJson == '') {HmsLogMessage(1, "Ошибка! Трейлер не доступен, или его нет на сайте!"); return;}
+      MediaResourceLink = BaseDecode(sJson);
+      string sQual;
+      if (HmsRegExMatch(',\\[\\d+\\D+\\](.*)', MediaResourceLink, sQual)) {      // Если в ссылке есть секция перечисления доступного качества в квадратных скобках
+        MediaResourceLink = sQual;
       }
+      
+      //if (HmsRegExMatch('(\\[.*?\\])', MediaResourceLink, sQualSection)) {      // Если в ссылке есть секция перечисления доступного качества в квадратных скобках
+      //  HmsRegExMatch('(\\d+)', sQualSection, sQual);                           // Берём первое качество в перечислении (обычно самое большое)
+      //  MediaResourceLink = ReplaceStr(MediaResourceLink, sQualSection, sQual); // Заменяем в ссылке секцию перечисления качеств на конкретное выбранное
+      //}
       
     } else
       MediaResourceLink = mpFilePath;
