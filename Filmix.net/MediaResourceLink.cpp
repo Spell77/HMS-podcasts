@@ -371,7 +371,7 @@ void CreateLinks() {
       int nPort = 80; if (gbHttps) nPort = 443;
       sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sData_Id, nPort, 16, sVal, true);
       sData = HmsJsonDecode(sData); 
-      HmsRegExMatch('"trailers":\\s*\\{\s*".*?":\s*"(.*?)"', sData, sJson);
+      HmsRegExMatch('"trailers":\\s*\\{\\s*".*?":\\s*"(.*?)"', sData, sJson);
       if (sJson == '') {HmsLogMessage(1, "Ошибка! Трейлер не доступен, или его нет на сайте!"); return;}
       MediaResourceLink = BaseDecode(sJson);
       string sQual;
