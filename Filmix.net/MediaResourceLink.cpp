@@ -49,7 +49,7 @@ bool LoginToFilmix() {
   int nPort = 443, nFlags = 0x10; // INTERNET_COOKIE_THIRD_PARTY;
   
   if ((Trim(mpPodcastAuthorizationUserName)=='') ||
-      (Trim(mpPodcastAuthorizationPassword)=='')) {
+  (Trim(mpPodcastAuthorizationPassword)=='')) {
     //ErrorItem('Не указан логин или пароль');
     //return false;
     return true; // Не включена авторизация - работаем так, без неё.
@@ -233,24 +233,24 @@ string BaseDecode(string sData) {
     sPost = 'https://moon.cx.ua/filmix/key.php';
     sDomen = HmsDownloadURL(sPost, 'Referer: '+mpFilePath, true);
   }
-    HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
-    HmsRegExMatch('"2":\\s"([^"]+)"' , sDomen, Garbage2);
-    HmsRegExMatch('"3":\\s"([^"]+)"' , sDomen, Garbage3);
-    HmsRegExMatch('"4":\\s"([^"]+)"' , sDomen, Garbage4);
-    HmsRegExMatch('"5":\\s"([^"]+)"' , sDomen, Garbage5);
-    // Убираем перечисленный в массиве мусор за несколько проходов, ибо один мусор может быть разбавлен в середине другим  
-    Variant tr=[Garbage1,Garbage2,Garbage3,Garbage4,Garbage5];
-    for (int n=0; n<3; n++) for (int i=0; i<Length(tr); i++) sData = ReplaceStr(sData, tr[i], '');
-    string sResult = HmsBase64Decode(sData);
-    return sResult;
+  HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
+  HmsRegExMatch('"2":\\s"([^"]+)"' , sDomen, Garbage2);
+  HmsRegExMatch('"3":\\s"([^"]+)"' , sDomen, Garbage3);
+  HmsRegExMatch('"4":\\s"([^"]+)"' , sDomen, Garbage4);
+  HmsRegExMatch('"5":\\s"([^"]+)"' , sDomen, Garbage5);
+  // Убираем перечисленный в массиве мусор за несколько проходов, ибо один мусор может быть разбавлен в середине другим  
+  Variant tr=[Garbage1,Garbage2,Garbage3,Garbage4,Garbage5];
+  for (int n=0; n<3; n++) for (int i=0; i<Length(tr); i++) sData = ReplaceStr(sData, tr[i], '');
+  string sResult = HmsBase64Decode(sData);
+  return sResult;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Создание ссылок на видео-файл или серии
 void CreateLinks() {
-  String sHtml, sData, sName, sLink, sID, sVal, sServ, sPage, sPost, sKey;
+  String sHtml, sData, sErr, sError, sName, sLink, sID, sVal, sServ, sPage, sPost, sKey;
   THmsScriptMediaItem Item; TRegExpr RegExp; int i, nCount, n; TJsonObject JSON, TRANS;
-
+  
   sHtml = HmsDownloadURL(mpFilePath, "Referer: "+gsHeaders);  // Загружаем страницу сериала
   sHtml = HmsUtf8Decode(HmsRemoveLineBreaks(sHtml));
   
@@ -258,7 +258,7 @@ void CreateLinks() {
     HmsLogMessage(1, "Невозможно найти видео ID на странице фильма.");
     return;
   };
- 
+  
   HmsRegExMatch('//(.*)', gsUrlBase, sServ);
   if (HmsRegExMatch('--quality=(\\d+)', mpPodcastParameters, sVal)) gnQual = StrToInt(sVal);
   //POST https://filmix.co/api/episodes/get?post_id=103435&page=1  // episodes name
@@ -266,7 +266,7 @@ void CreateLinks() {
   
   // -------------------------------------------------
   // Собираем информацию о фильме
-  if (HmsRegExMatch('Время:(.*?)<br', sHtml, sData)) {
+  if (HmsRegExMatch('Время:(.*?)</span>\\s</div>', sHtml, sData)) {
     if (HmsRegExMatch('(\\d+)\\s+мин', ' '+sData, sVal)) {
       gnTime =  HmsTimeFormat(StrToInt(sVal)*60)+'.000'; // Из-за того что серии иногда длинее, добавляем пару минут
     }
@@ -279,12 +279,16 @@ void CreateLinks() {
   if (HmsRegExMatch('<div class="about" itemprop="description"><div class="full-story">(.*?)</div>', sHtml, sVal)) PodcastItem[mpiComment] = HmsHtmlToText(sVal);
   HmsRegExMatch('<span class="video-in"><span>(.*?)</span></span>', sHtml, PodcastItem[mpiAuthor]);
   // -------------------------------------------------
-
+  
   int nPort = 80; if (gbHttps) nPort = 443;
-
+  
   gsSeriesInfo = HmsSendRequestEx(sServ, '/api/episodes/get', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sID, nPort, 16, '', true);  
   
   sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sID, nPort, 16, sVal, true);
+  
+  sErr = HmsDownloadURL('http://moon.cx.ua/filmix/new.php?ref='+HmsBase64Encode(mpFilePath)+'&id='+sID, "Referer: "+gsHeaders);  // Загружаем страницу сериала
+  HmsRegExMatch('"err":"([^"]+)"', sErr, sError); 
+  sError = HmsJsonDecode(sError);
   
   JSON  = TJsonObject.Create();
   try {
@@ -296,7 +300,7 @@ void CreateLinks() {
       sLink = TRANS.S[sName];
       sName = HmsUtf8Decode(sName);
       sLink = HmsExpandLink(BaseDecode(sLink), gsUrlBase);
-      sLink  = GetRandomServerFile(sLink);
+      //sLink  = GetRandomServerFile(sLink);
       // Проверяем, ссылка эта на плейлист?
       if (HmsRegExMatch('/pl/', sLink, '')) {
         if (nCount > 1) {
@@ -305,15 +309,16 @@ void CreateLinks() {
           Item[mpiSeriesInfo] = gsSeriesInfo;
         } else
           // Иначе создаём ссылки на серии из плейлиста
-          CreateSeriesFromPlaylist(PodcastItem, sLink);
+        CreateSeriesFromPlaylist(PodcastItem, sLink);
         
       } else {
         // Это не плейлист - просто создаём ссылку на видео
         CreateVideoLinks(PodcastItem, sName, sLink);
-
+        
       }
     }
-    if (nCount==0) ErrorItem('Видео не доступно');
+    
+    if (nCount==0) ErrorItem(sError);
     
   } finally { JSON.Free; }
   
@@ -334,6 +339,7 @@ void CreateLinks() {
     if (HmsRegExMatch('(Жанр:</span>.*?)</div'      , sHtml, sName)) AddInfoItem(HmsHtmlToText(sName));
     if (HmsRegExMatch('(<div[^>]+translate.*?)</div', sHtml, sName)) AddInfoItem(HmsHtmlToText(sName));
     if (HmsRegExMatch('(<div[^>]+quality.*?)</div'  , sHtml, sName)) AddInfoItem(HmsHtmlToText(sName));
+    if(PodcastItem[mpiTimeLength]!='') {sName = 'Время: ' +PodcastItem[mpiTimeLength];  AddInfoItem(HmsHtmlToText(sName));}
     sName = 'Описание: ' +PodcastItem[mpiComment];  AddInfoItem(HmsHtmlToText(sName));
     if(PodcastItem[mpiAuthor]){
     sName = 'Info: ' +PodcastItem[mpiAuthor];  AddInfoItem(HmsHtmlToText(sName));
@@ -370,7 +376,7 @@ void CreateLinks() {
         HmsRegExMatch('//(.*)', gsUrlBase, sServ);
       int nPort = 80; if (gbHttps) nPort = 443;
       sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sData_Id, nPort, 16, sVal, true);
-      sData = HmsJsonDecode(sData); 
+      //sData = HmsJsonDecode(sData); 
       HmsRegExMatch('"trailers":\\s*\\{\\s*".*?":\\s*"(.*?)"', sData, sJson);
       if (sJson == '') {HmsLogMessage(1, "Ошибка! Трейлер не доступен, или его нет на сайте!"); return;}
       MediaResourceLink = BaseDecode(sJson);
