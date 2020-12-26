@@ -265,6 +265,7 @@ void AddVideoInfoItems(TStrings ADDINFO) {
   if (ADDINFO.Values['Time'     ]) CreateVideoInfoItem('Время фильма/серии: '  +ADDINFO.Values['Time'    ], ADDINFO);
   if (ADDINFO.Values['Infos'    ]) CreateVideoInfoItem('Info: '                +ADDINFO.Values['Infos'   ], ADDINFO);
   if (ADDINFO.Values['Rating'   ]) CreateVideoInfoItem('IMDB: '                +ADDINFO.Values['Rating'  ], ADDINFO);
+  if (ADDINFO.Values['Quality'  ]) CreateVideoInfoItem('Kачествo: '            +ADDINFO.Values['Quality'  ], ADDINFO);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // ---- Создание ссылок на файл(ы) по переданной ссылке (шаблону) -------------
