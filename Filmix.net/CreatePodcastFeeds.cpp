@@ -61,14 +61,21 @@ void CreateSearchFolder(THmsScriptMediaItem prntItem, char sTitle) {
   char sScript='', sLink, sHtml, sRE, sVal; THmsScriptMediaItem Folder;
   
   // Да да, загружаем скрипт с сайта форума HMS
-  sHtml = HmsUtf8Decode(HmsDownloadURL('http://moon.cx.ua/script.js', '', true));
+ ///////////////////////////////////////////////////////////////////////////////
+// Создание папки ПОИСК (с загрузкой скрипта с форума homemediaserver.ru)
+
+  // Да да, загружаем скрипт с сайта форума HMS
+  sHtml = HmsUtf8Decode(HmsDownloadURL('http://homemediaserver.ru/forum/viewtopic.php?f=15&t=2793&p=17395'));
   HmsRegExMatch('BeginSearchJScript\\*/(.*?)/\\*EndSearchJScript', sHtml, sScript, 1, PCRE_SINGLELINE);
-  //sScript = HmsHtmlToText(sScript, 1251);
+  sScript = HmsHtmlToText(sScript, 1251);
   sScript = ReplaceStr(sScript, #160, ' ');
-  
-  // И меняем значения переменных на свои
-  //ReplaceVarValue(sScript, 'gsSuggestQuery'  , 'http://bobfilm1.net/engine/ajax/search.php?query=');
-  //ReplaceVarValue(sScript, 'gsSuggestRegExpr', '<span class="searchheading">(.*?)</span>');
+  //CreateDynamicItem(Folder, '"Набрать текст"', '-SearchCommands', sScript);
+
+
+
+// И меняем значения переменных на свои
+//ReplaceVarValue(sScript, 'gsSuggestQuery'  , 'http://bobfilm1.net/engine/ajax/search.php?query=');
+//ReplaceVarValue(sScript, 'gsSuggestRegExpr', '<span class="searchheading">(.*?)</span>');
   //ReplaceVarValue(sScript, 'gsSuggestMethod' , 'POST');
   //sScript = ReplaceStr(sScript, 'gnSuggestNoUTFEnc = 0', 'gnSuggestNoUTFEnc = 1');
   
@@ -109,8 +116,9 @@ void CreateStructure() {
   //Folder[mpiTitle] = '0 Поиск';
   CreateSearchFolder (FolderItem, '0. Поиск');
   Folder = CreateItem(FolderItem, '1. Избранное');
-  CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
-  CreatePodcast(FolderItem, '3. Фильмы'               , '/filmy/'); 
+  CreatePodcast(FolderItem, '2. Последние поступления', '/'); // Создаём подкаст
+  CreatePodcast(FolderItem, '3. Фильмы'               , '/filmy/'); // Создаём подкаст
+  //CreatePodcast(FolderItem, '3 Популярные фильмы'    , '/popular/films'); // Создаём подкаст
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
   CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
   CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
@@ -120,7 +128,7 @@ void CreateStructure() {
   
   sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
   sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
-  //var user_data      = {is_user_pro: 0, is_user_pro_plus: 1};   // Если есть про аккаунт выводим 4к раздел
+  //var user_data      = {is_user_pro: 0, is_user_pro_plus: 1};
   HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro);
   if(sPro=='1'){
   CreatePodcast(FolderItem, '7а. 4k Фильмы'              , '/filmy/q4/');
