@@ -69,16 +69,7 @@ void CreateSearchFolder(THmsScriptMediaItem prntItem, char sTitle) {
   HmsRegExMatch('BeginSearchJScript\\*/(.*?)/\\*EndSearchJScript', sHtml, sScript, 1, PCRE_SINGLELINE);
   sScript = HmsHtmlToText(sScript, 1251);
   sScript = ReplaceStr(sScript, #160, ' ');
-  //CreateDynamicItem(Folder, '"Набрать текст"', '-SearchCommands', sScript);
 
-
-
-// И меняем значения переменных на свои
-//ReplaceVarValue(sScript, 'gsSuggestQuery'  , 'http://bobfilm1.net/engine/ajax/search.php?query=');
-//ReplaceVarValue(sScript, 'gsSuggestRegExpr', '<span class="searchheading">(.*?)</span>');
-  //ReplaceVarValue(sScript, 'gsSuggestMethod' , 'POST');
-  //sScript = ReplaceStr(sScript, 'gnSuggestNoUTFEnc = 0', 'gnSuggestNoUTFEnc = 1');
-  
   Folder = prntItem.AddFolder(sTitle, true);
   Folder[mpiCreateDate     ] = VarToStr(IncTime(gTimeStart,0,-gnTotalItems,0,0));
   Folder[mpiFolderSortOrder] = "-mpCreateDate";
@@ -111,29 +102,27 @@ THmsScriptMediaItem CreateItem(THmsScriptMediaItem Parent, string sTitle="", str
 void CreateStructure() {
   string sHtml, sData,sPro, sName, sLink; TRegExpr RegEx;         // Объявляем переменные
   THmsScriptMediaItem Folder, Item;
-  
-  //Folder = FolderItem.AddFolder('-SearchFolder', true);      // Создаём папку
-  //Folder[mpiTitle] = '0 Поиск';
+ 
   CreateSearchFolder (FolderItem, '0. Поиск');
   Folder = CreateItem(FolderItem, '1. Избранное');
-  CreatePodcast(FolderItem, '2. Последние поступления', '/'); // Создаём подкаст
-  CreatePodcast(FolderItem, '3. Фильмы'               , '/filmy/'); // Создаём подкаст
-  //CreatePodcast(FolderItem, '3 Популярные фильмы'    , '/popular/films'); // Создаём подкаст
+  CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
+  CreatePodcast(FolderItem, '3 Популярные фильмы'    , '/popular/films'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
   CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
   CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
   Folder[mpiPodcastParameters] = '--maxpages=20';
   
  
-  
+  CreatePodcast(FolderItem, '7. Фильмы'               , '/filmy/'); // Создаём подкаст
   sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
   sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
-  //var user_data      = {is_user_pro: 0, is_user_pro_plus: 1};
   HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro);
   if(sPro=='1'){
-  CreatePodcast(FolderItem, '7а. 4k Фильмы'              , '/filmy/q4/');
+  CreatePodcast(FolderItem, '7а. 4k'              , '/filmy/q4/');
+  CreatePodcast(FolderItem, '7b. 2k'              , '/filmy/q2/');
+  CreatePodcast(FolderItem, '7c. 1080'              , '/filmy/qh/');  
 }
-  Folder = FolderItem.AddFolder('7. По категориям', true);    // Создаём папку
+  Folder = FolderItem.AddFolder('8. По категориям', true);    // Создаём папку
   // Вырезаем нужный блок в переменную sData
   HmsRegExMatch('menu-title">Фильмы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
 
