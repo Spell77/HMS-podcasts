@@ -100,7 +100,7 @@ THmsScriptMediaItem CreateItem(THmsScriptMediaItem Parent, string sTitle="", str
 ///////////////////////////////////////////////////////////////////////////////
 // Создание структуры
 void CreateStructure() {
-  string sHtml, sData,sPro, sName, sLink; TRegExpr RegEx;         // Объявляем переменные
+  string sHtml, sData,sPro, sName, sLink; TRegExpr RegEx, RegExs;         // Объявляем переменные
   THmsScriptMediaItem Folder, Item;
  
   CreateSearchFolder (FolderItem, '0. Поиск');
@@ -109,20 +109,42 @@ void CreateStructure() {
   CreatePodcast(FolderItem, '3 Популярные фильмы'    , '/popular/films'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
   CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
-  CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
-  Folder[mpiPodcastParameters] = '--maxpages=20';
-  
- 
-  CreatePodcast(FolderItem, '7. Фильмы'               , '/filmy/'); // Создаём подкаст
   sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
   sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
-  HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro);
+  HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro); // Проверка аккаунта Pro +
+  CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
   if(sPro=='1'){
-  CreatePodcast(FolderItem, '7а. 4k'              , '/filmy/q4/');
-  CreatePodcast(FolderItem, '7b. 2k'              , '/filmy/q2/');
-  CreatePodcast(FolderItem, '7c. 1080'              , '/filmy/qh/');  
+    CreatePodcast(FolderItem, '6а. 4k'                , '/serials/q4/');
+    CreatePodcast(FolderItem, '6b. 2k'                , '/serials/q2/');
+    CreatePodcast(FolderItem, '6c. 1080'              , '/serials/qh/');  
+  }
+  Folder[mpiPodcastParameters] = '--maxpages=20';
+  Folder = FolderItem.AddFolder('7. По категориям сериалы', true);    // Создаём папку
+  HmsRegExMatch('menu-title">Сериалы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
+  
+  
+  // Создаём объект для поиска текста и ищем в цикле по регулярному выражению
+  RegExs = TRegExpr.Create('<a[^>]+href="(.*?)".*?</a>'); 
+  try {
+    if (RegExs.Search(sData)) do {     // Если нашли совпадение, запускаем цикл 
+      sLink = RegExs.Match(1);       // Получаем значение первой группировки 
+      sName = RegExs.Match(0);       // Получаем совпадение всего шаблона 
+      sName = HmsHtmlToText(sName); // Преобразуем html в простой текст 
+      
+      CreatePodcast(Folder, sName, sLink); // Создаём подкаст с полученным именем и ссылкой
+      
+    } while (RegExs.SearchAgain);      // Повторяем цикл, если найдено следующее совпадение
+    
+  } finally { RegExs.Free(); }         // Освобождаем объект из памяти
+  
+  
+  CreatePodcast(FolderItem, '8. Фильмы'               , '/filmy/'); // Создаём подкаст
+  if(sPro=='1'){
+  CreatePodcast(FolderItem, '8а. 4k'                  , '/filmy/q4/');
+  CreatePodcast(FolderItem, '8b. 2k'                  , '/filmy/q2/');
+  CreatePodcast(FolderItem, '8c. 1080'                , '/filmy/qh/');  
 }
-  Folder = FolderItem.AddFolder('8. По категориям', true);    // Создаём папку
+  Folder = FolderItem.AddFolder('9. По категориям фильмы', true);    // Создаём папку
   // Вырезаем нужный блок в переменную sData
   HmsRegExMatch('menu-title">Фильмы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
 
