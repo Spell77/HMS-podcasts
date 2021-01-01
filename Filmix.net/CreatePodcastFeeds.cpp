@@ -104,7 +104,7 @@ void CreateStructure() {
   THmsScriptMediaItem Folder, Item;
  
   CreateSearchFolder (FolderItem, '0. Поиск');
-  Folder = CreateItem(FolderItem, '1. Избранное');
+ // Folder = CreateItem(FolderItem, '1. Избранное');
   CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
   CreatePodcast(FolderItem, '3 Популярные фильмы'    , '/popular/films'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
@@ -118,7 +118,7 @@ void CreateStructure() {
     CreatePodcast(FolderItem, '6b. 2k'                , '/serials/q2/');
     CreatePodcast(FolderItem, '6c. 1080'              , '/serials/qh/');  
   }
-  Folder[mpiPodcastParameters] = '--maxpages=20';
+  //Folder[mpiPodcastParameters] = '--maxpages=20';
   Folder = FolderItem.AddFolder('7. По категориям сериалы', true);    // Создаём папку
   HmsRegExMatch('menu-title">Сериалы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
   
