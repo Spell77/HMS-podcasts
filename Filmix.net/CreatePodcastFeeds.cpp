@@ -43,7 +43,7 @@ THmsScriptMediaItem CreateDynamicItem(THmsScriptMediaItem prntItem, char sTitle,
   Folder[mpiFolderSortOrder] = -mpiCreateDate;
   return Folder;
 }
-
+/*
 ///////////////////////////////////////////////////////////////////////////////
 // Удаление всех существующих разделов(перед созданием) кроме поиска
 void DeleteFolders() {
@@ -53,7 +53,23 @@ void DeleteFolders() {
     Item.Delete();
   }
 }
+*/
 
+//////////////////////////////////////////////////////////////////////////////
+// Удаление существующих разделов (перед созданием)
+bool DeleteFolders() {
+  THmsScriptMediaItem Item, FavFolder; int i, nAnsw;
+  FavFolder = HmsFindMediaFolder(FolderItem.ItemID, 'favorites');
+  if (FavFolder==nil) { FolderItem.DeleteChildItems(); return true; }
+  nAnsw = MessageDlg('Очистить папку "Избранное"?', mtConfirmation, mbYes+mbNo+mbCancel, 0);
+  if (nAnsw== mrCancel) return false;
+  for (i=FolderItem.ChildCount-1; i>=0; i--) {
+    Item = FolderItem.ChildItems[i]; if (Item[mpiFilePath]=='-SearchFolder') continue;
+    if ((Item==FavFolder) && (nAnsw==mrNo)) continue;
+    Item.Delete();
+  }
+  return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Создание папки ПОИСК (с загрузкой скрипта с форума homemediaserver.ru)
@@ -104,22 +120,22 @@ void CreateStructure() {
   THmsScriptMediaItem Folder, Item;
  
   CreateSearchFolder (FolderItem, '0. Поиск');
- // Folder = CreateItem(FolderItem, '1. Избранное');
-  CreatePodcast(FolderItem, '1. Последние поступления', '/'); 
-  CreatePodcast(FolderItem, '2 Популярные фильмы'    , '/popular/films'); 
-  CreatePodcast(FolderItem, '3. Мультфильмы'          , '/multfilms/');
-  CreatePodcast(FolderItem, '4. Мультсериалы'         , '/multserialy/', '--pages=10');
+  CreatePodcast(FolderItem, '1. Избранное'          , 'favorites');
+  CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
+  CreatePodcast(FolderItem, '3. Популярные фильмы'    , '/popular/films'); 
+  CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
+  CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
   sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
   sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
   HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro); // Проверка аккаунта Pro +
-  CreatePodcast(FolderItem, '5. Сериалы'              , '/serials/');
+  CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
   if(sPro=='1'){
-    CreatePodcast(FolderItem, '5а. 4k'                , '/serials/q4/');
-    CreatePodcast(FolderItem, '5b. 2k'                , '/serials/q2/');
-    CreatePodcast(FolderItem, '5c. 1080'              , '/serials/qh/');  
+    CreatePodcast(FolderItem, '6а. 4k'                , '/serials/q4/');
+    CreatePodcast(FolderItem, '6b. 2k'                , '/serials/q2/');
+    CreatePodcast(FolderItem, '6c. 1080'              , '/serials/qh/');  
   }
   //Folder[mpiPodcastParameters] = '--maxpages=20';
-  Folder = FolderItem.AddFolder('6. По категориям сериалы', true);    // Создаём папку
+  Folder = FolderItem.AddFolder('7. По категориям сериалы', true);    // Создаём папку
   HmsRegExMatch('menu-title">Сериалы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
   
   
@@ -138,13 +154,13 @@ void CreateStructure() {
   } finally { RegExs.Free(); }         // Освобождаем объект из памяти
   
   
-  CreatePodcast(FolderItem, '6. Фильмы'               , '/filmy/'); // Создаём подкаст
+  CreatePodcast(FolderItem, '8. Фильмы'               , '/filmy/'); // Создаём подкаст
   if(sPro=='1'){
-  CreatePodcast(FolderItem, '6а. 4k'                  , '/filmy/q4/');
-  CreatePodcast(FolderItem, '6b. 2k'                  , '/filmy/q2/');
-  CreatePodcast(FolderItem, '6c. 1080'                , '/filmy/qh/');  
+  CreatePodcast(FolderItem, '8а. 4k'                  , '/filmy/q4/');
+  CreatePodcast(FolderItem, '8b. 2k'                  , '/filmy/q2/');
+  CreatePodcast(FolderItem, '8c. 1080'                , '/filmy/qh/');  
 }
-  Folder = FolderItem.AddFolder('7. По категориям фильмы', true);    // Создаём папку
+  Folder = FolderItem.AddFolder('9. По категориям фильмы', true);    // Создаём папку
   // Вырезаем нужный блок в переменную sData
   HmsRegExMatch('menu-title">Фильмы<.*?</ul>(.*?)class="lucky"', sHtml, sData);
 
