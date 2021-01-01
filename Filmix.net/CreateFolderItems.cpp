@@ -1,4 +1,4 @@
-﻿// 2018.07.01  Collaboration: WendyH, Big Dog, михаил
+// 2018.07.01  Collaboration: WendyH, Big Dog, михаил, Spell
 ////////////////////////  Создание  списка  видео   ///////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -8,7 +8,7 @@ string    gsUrlBase    = ''; // Url база ссылок нашего сайт�
 bool      gbHttps      = (LeftCopy(gsUrlBase, 5)=='https');
 int       gnTotalItems = 0;                    // Количество созданных элементов
 TDateTime gStart       = Now;                  // Время запуска скрипта
-int       gnMaxPages   = 10; // Макс. кол-во страниц для загрузки списка видео
+int       gnMaxPages   = 15; // Макс. кол-во страниц для загрузки списка видео
 
 // Регулярные выражения для поиска на странице блоков с информацией о видео
 string gsPatternBlock  = '<article(.*?)</article>'        ;
@@ -41,6 +41,21 @@ THmsScriptMediaItem CreateFolder(THmsScriptMediaItem Folder, string sName, strin
   return Item;                // Возвращаем созданный объект
 }
 
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Создание ссылки на видео
+THmsScriptMediaItem CreateMediaItem(THmsScriptMediaItem Folder, string sTitle, string sLink, string sImg, int nTime, string sGrp='') {
+  THmsScriptMediaItem Item = HmsCreateMediaItem(sLink, Folder.ItemID, sGrp);
+  Item[mpiTitle     ] = sTitle;
+  Item[mpiThumbnail ] = sImg;
+  Item[mpiCreateDate] = IncTime(gStart,0,-gnTotalItems,0,0); gnTotalItems++;
+  Item[mpiTimeLength] = HmsTimeFormat(nTime)+'.000';
+  if (HmsRegExMatch('(?:/embed/|v=)([\\w-_]+)', sLink, sImg))
+    Item[mpiThumbnail] = 'http://img.youtube.com/vi/'+sImg+'/1.jpg';
+  return Item;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // ------------------------------------ Получение название группы из имени ----
 string GetGroupName(string sName) {
@@ -66,7 +81,7 @@ bool Login() {
   HmsRegExMatch('//([^/]+)', gsUrlBase, sDomen);
   int nPort  = 80; if (gbHttps) nPort = 443;
   int nFlags = 0x10; // INTERNET_COOKIE_THIRD_PARTY;
-  sHeaders = gsUrlBase+"/\r\n"+
+  sHeaders =  gsUrlBase+"/\r\n"+
              "Accept: */*\r\n"+
              "Origin: "+gsUrlBase+"\r\n"+
              "X-Requested-With: XMLHttpRequest\r\n"+
@@ -80,10 +95,10 @@ bool Login() {
   sUser = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationUserName)); // Логин
   sPass = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationPassword)); // Пароль
   sUser = ReplaceStr(sUser, "@", "%2540");
-  sPost = 'login_name='+sUser+'&login_password='+sPass+"&login_not_save=0&login=submit";
+  sPost = 'login_name='+sUser+'&login_password='+sPass+"&login_not_save=1&login=submit";
   sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', sHeaders, sPost, nPort, nFlags, sRet, true);
   sData = HmsUtf8Decode(sData);
-  if (HmsRegExMatch('AUTH_OK', sData, '')) return true;
+  if (HmsRegExMatch('AUTHORIZED', sData, '')) return true;
   
   ErrorItem('Введён неправильный логин или пароль');
   return false;  
@@ -94,20 +109,22 @@ bool Login() {
 void CreateVideoFolders() {
   string sHtml, sData, sName, sLink, sImg, sYear, sVal, sGroupingKey='none', sGrp, sDomen; 
   int i, nPages, nMaxInGroup, iCnt, nGrp; TRegExpr RegEx; bool bPost; // Объявляем переменные
-  THmsScriptMediaItem Folder = FolderItem; string sHeaders;
+  THmsScriptMediaItem Folder = FolderItem, Item; string sHeaders;
   HmsRegExMatch('//([^/]+)', gsUrlBase, sDomen);
-  sHeaders = gsUrlBase+"\r\n"+
+  sHeaders = "Content-Type: application/x-www-form-urlencoded; charset=UTF-8\r\n"+
+             "Accept-Encoding: gzip, deflate\r\n"+
              "Origin: "+gsUrlBase+"\r\n"+
+             "Host: "+sDomen+"\r\n"+
              "User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36\r\n"+
              "X-Requested-With: XMLHttpRequest\r\n";
-
+  
   sHtml  = ''; // Текст загруженных страниц сайта
   nPages = gnMaxPages;  // Количество загружаемых страниц
   nMaxInGroup = 100;
   int nPort = 80; if (gbHttps) nPort = 443;
   
-  HmsRegExMatch('--group=(\\w+)', mpPodcastParameters, sGroupingKey);
-  if (HmsRegExMatch('--pages=(\\d+)', mpPodcastParameters, sVal)) nPages = StrToInt(sVal);
+  if(HmsRegExMatch('--group=(\\w+)', mpPodcastParameters, sGroupingKey))
+    if (HmsRegExMatch('--pages=(\\d+)', mpPodcastParameters, sVal)) nPages = StrToInt(sVal);
   
   if (HmsRegExMatch('--maxingroup=(\\d+)', mpPodcastParameters, sVal)) nMaxInGroup = StrToInt(sVal);
   if (HmsRegExMatch('--maxpages=(\\d+)'  , mpPodcastParameters, sVal)) gnMaxPages  = StrToInt(sVal);
@@ -121,7 +138,7 @@ void CreateVideoFolders() {
   } else if ((LeftCopy(mpFilePath, 4)!='http')&&(LeftCopy(mpFilePath, 1)!='/')) {
     HmsUtf8Decode(HmsDownloadUrl(gsUrlBase)); // для установки кук
     // Если в поле "Ссылка" нет реальной ссылки, то делаем ссылку сами - будем искать наименование
-    mpFilePath = 'scf=fx&search_start=0&do=search&subaction=search&years_ot=1902&years_do=2018&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1&story='+HmsHttpEncode(HmsUtf8Encode(mpTitle));
+    mpFilePath = 'scf=fx&story='+HmsHttpEncode(HmsUtf8Encode(mpTitle))+'&search_start=0&do=search&subaction=search&years_ot=1902&years_do=2019&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1';
     gsPatternPages = '.*list_submit2\\((\\d+)';
     gsPagesParam   = '&search_start=<PN>';
     bPost  = true;
@@ -133,7 +150,7 @@ void CreateVideoFolders() {
   
   if (bPost) sHtml = HmsUtf8Decode(HmsSendRequestEx(sDomen, "/engine/ajax/sphinx_search.php", "POST", "application/x-www-form-urlencoded; charset=UTF-8", sHeaders, mpFilePath, nPort, 0x10,sVal,true));
   else       sHtml = HmsUtf8Decode(HmsDownloadUrl(mpFilePath)); // Загружаем страницу
-  
+    
   if ((Pos("user-profile", sHtml) < 1) && (Trim(mpPodcastAuthorizationUserName)!="") && !bPost) {
     if (!Login()) return;
     sHtml = HmsUtf8Decode(HmsDownloadUrl(mpFilePath));
@@ -144,8 +161,8 @@ void CreateVideoFolders() {
     nPages = StrToInt(sVal); // Номер последней страницы
     if (nPages > gnMaxPages) nPages = gnMaxPages;
   }    
-
-  for (i=2; i<nPages; i++) {
+  
+  for (i=1; i<nPages; i++) {
     HmsSetProgress(Trunc(i*100/nPages));                                         // Устанавливаем позицию прогресса загрузки 
     HmsShowProgress(Format('%s: Страница %d из %d', [mpTitle, i, nPages]));      // Показываем окно прогресса
     sLink = mpFilePath + ReplaceStr(gsPagesParam, '<PN>', Str(i));
@@ -159,7 +176,7 @@ void CreateVideoFolders() {
   }
   HmsHideProgress();                    // Убираем окно прогресса с экрана
   sHtml = HmsRemoveLineBreaks(sHtml);   // Удаляем переносы строк, для облегчения работы с регулярными выражениями
-
+  
   // Создаём объект для поиска и ищем в цикле по регулярному выражению
   RegEx = TRegExpr.Create(gsPatternBlock); 
   try {
@@ -174,36 +191,46 @@ void CreateVideoFolders() {
       HmsRegExMatch(gsPatternTitle, RegEx.Match, sName); // Наименование
       HmsRegExMatch(gsPatternImg  , RegEx.Match, sImg ); // Картинка
       HmsRegExMatch(gsPatternYear , RegEx.Match, sYear); // Год
-
+      
       if (sLink=='') continue;          // Если нет ссылки, значит что-то не так
-       
+        
       sLink = HmsExpandLink(sLink, gsUrlBase);             // Делаем ссылку полной, если она таковой не является
       if (sImg!='') sImg = HmsExpandLink(sImg, gsUrlBase); // Если есть ссылка на картинку, делаем ссылку полной        
-      sName = HmsHtmlToText(sName);                        // Преобразуем html в простой текст
+        sName = HmsHtmlToText(sName);                        // Преобразуем html в простой текст
       HmsRegExMatch('(.*?)/' , sName, sName);              // Обрезаем слишком длинные названия (на англ. языке)
-
+      
       // Если в названии нет года, добавляем год выхода 
       if ((sYear!='') && (Pos(sYear, sName)<1)) sName += ' ('+sYear+')';
-
+      
       if      (sGroupingKey=="quant") {
         sGrp = Format("%.2d", [nGrp]);
         iCnt++; if (iCnt>=nMaxInGroup) { nGrp++; iCnt=0; }
       } 
-      else if (sGroupingKey=="alph") sGrp = GetGroupName(sName);
-      else if (sGroupingKey=="year") sGrp = sYear;
-      else sGrp = "";
-
-      if (Trim(sGrp)!="") Folder = CreateFolder(FolderItem, sGrp, sGrp);
+      /////else if (sGroupingKey=="alph") sGrp = GetGroupName(sName);
+      //else if (sGroupingKey=="year") sGrp = sYear;
+     // else sGrp = "";
+      
+     // if (Trim(sGrp)!="") Folder = CreateFolder(FolderItem, sGrp, sGrp);
       
       CreateFolder(Folder, sName, sLink, sImg); // Вызываем функцию создания папки видео
-                                      
+      
+      
     } while (RegEx.SearchAgain);        // Повторяем цикл, если найдено следующее совпадение
-  
+    
   } finally { RegEx.Free; }             // Освобождаем объект из памяти
-
+  
   if      (sGroupingKey=="alph") FolderItem.Sort("mpTitle");
-  else if (sGroupingKey=="year") FolderItem.Sort("-mpTitle");
-} 
+ else if (sGroupingKey=="year") FolderItem.Sort("-mpTitle");
+  
+ 
+
+ 
+}
+   
+    
+
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Проверка и обновление скриптов подкаста
@@ -213,8 +240,10 @@ void CheckPodcastUpdate() {
   
   // Если после последней проверки прошло меньше получаса - валим
   if ((Trim(Podcast[550])=='') || (DateTimeToTimeStamp1970(Now, false)-StrToIntDef(Podcast[mpiTimestamp], 0) < 14400)) return; // раз в 4 часа
-  Podcast[mpiTimestamp] = DateTimeToTimeStamp1970(Now, false); // Запоминаем время проверки
-  sData = HmsDownloadURL('https://api.github.com/repos/WendyH/HMS-podcasts/contents/Filmix.net', "Accept-Encoding: gzip, deflate", true);
+    Podcast[mpiTimestamp] = DateTimeToTimeStamp1970(Now, false); // Запоминаем время проверки
+  //sData = HmsDownloadURL('https://api.github.com/repos/WendyH/HMS-podcasts/contents/Filmix.net', "Accept-Encoding: gzip, deflate", true);
+  sData = HmsDownloadURL('https://api.github.com/repos/Spell77/HMS-podcasts/contents/Filmix.net', "Accept-Encoding: gzip, deflate", true);
+  //https://api.github.com/repos/Spell77/HMS-podcasts/contents/Filmix.net
   JSON  = TJsonObject.Create();
   try {
     JSON.LoadFromString(sData);
@@ -231,7 +260,7 @@ void CheckPodcastUpdate() {
       if (Podcast[mpiSHA]!=JFILE.S['sha']) { // Проверяем, требуется ли обновлять скрипт?
         sData = HmsDownloadURL(JFILE.S['download_url'], "Accept-Encoding: gzip, deflate", true); // Загружаем скрипт
         if (sData=='') continue;                                                     // Если не получилось загрузить, пропускаем
-        Podcast[mpiScript+0] = HmsUtf8Decode(ReplaceStr(sData, '\xEF\xBB\xBF', '')); // Скрипт из unicode и убираем BOM
+          Podcast[mpiScript+0] = HmsUtf8Decode(ReplaceStr(sData, '\xEF\xBB\xBF', '')); // Скрипт из unicode и убираем BOM
         Podcast[mpiScript+1] = sLang;                                                // Язык скрипта
         Podcast[mpiSHA     ] = JFILE.S['sha']; bChanges = true;                      // Запоминаем значение SHA скрипта
         HmsLogMessage(1, Podcast[mpiTitle]+": Обновлён скрипт подкаста "+sName);     // Сообщаем об обновлении в журнал
@@ -245,13 +274,18 @@ void CheckPodcastUpdate() {
 //                    Г Л А В Н А Я    П Р О Ц Е Д У Р А                     //
 ///////////////////////////////////////////////////////////////////////////////
 {
+  // Проверка на упоротых, которые пытаются запустить "Обновление подкастов" для всего подкаста разом
+  if (InteractiveMode && (HmsCurrentMediaTreeItem.ItemClassName=='TVideoPodcastsFolderItem')) {
+    HmsCurrentMediaTreeItem.DeleteChildItems(); // Дабы обновления всех подкастов не запустилось - удаляем их.
+    ShowMessage('Обновление всех разделов разом запрещено!\nДля восстановления структуры\nзапустите "Создать ленты подкастов".');
+    return;
+  } 
+  
+  if ((Pos('--nocheckupdates' , mpPodcastParameters)<1)) CheckPodcastUpdate(); // Проверка обновлений подкаста
   HmsRegExMatch('^(.*?//[^/]+)', Podcast[mpiFilePath], gsUrlBase); // Получаем значение в gsUrlBase
   gbHttps = (LeftCopy(gsUrlBase, 5)=='https');                     // Флаг использования 443 порта для запросов
   FolderItem.DeleteChildItems(); // Удаляем созданное ранее содержимое
-  
-  if ((Pos('--nocheckupdates', mpPodcastParameters)<1) && (mpComment=='--update')) CheckPodcastUpdate(); // Проверка обновлений подкаста
-  
   CreateVideoFolders();          // Запускаем загрузку страниц и создание папок видео
-  
+ // if ((Pos('--nocheckupdates' , mpPodcastParameters)<1) && (mpComment=='--update')) CheckPodcastUpdate();
   HmsLogMessage(1, Podcast[mpiTitle]+' "'+mpTitle+'": Создано элементов - '+IntToStr(gnTotalItems));
 }
