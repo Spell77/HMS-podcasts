@@ -1,7 +1,8 @@
 // 2018.12.16  Collaboration: WendyH, Big Dog, михаил, Spell
 //////////////////  Получение ссылок на медиа-ресурс   ////////////////////////
 #define mpiSeriesInfo 10323  // Идентификатор для хранения информации о сериях
-
+#define mpiJsonInfo   40032
+#define mpiKPID       40033
 ///////////////////////////////////////////////////////////////////////////////
 //               Г Л О Б А Л Ь Н Ы Е   П Е Р Е М Е Н Н Ы Е                   //
 THmsScriptMediaItem Podcast = GetRoot(); // Главная папка подкаста
@@ -36,7 +37,20 @@ THmsScriptMediaItem GetRoot() {
   while ((Trim(Podcast[550])=='') && (Podcast.ItemParent!=nil)) Podcast=Podcast.ItemParent;
   return Podcast;
 }
-//mpiFilePath
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Создание ссылки на видео
+THmsScriptMediaItem CreateMediaItem(THmsScriptMediaItem Folder, string sTitle, string sLink, string sImg, int nTime, string sGrp='') {
+  THmsScriptMediaItem Item = HmsCreateMediaItem(sLink, Folder.ItemID, sGrp);
+  Item[mpiTitle     ] = sTitle;
+  Item[mpiThumbnail ] = sImg;
+  Item[mpiCreateDate] = IncTime(gStart,0,-gnTotalItems,0,0); gnTotalItems++;
+  Item[mpiTimeLength] = HmsTimeFormat(nTime)+'.000';
+  if (HmsRegExMatch('(?:/embed/|v=)([\\w-_]+)', sLink, sImg))
+    Item[mpiThumbnail] = 'http://img.youtube.com/vi/'+sImg+'/1.jpg';
+  return Item;
+}
 ///////////////////////////////////////////////////////////////////////////////
 // Декодирование ссылок для HTML5 плеера
 string Html5Decode(string sEncoded) {
@@ -223,7 +237,7 @@ bool VideoPreview() {
   } except { sFileMP3=''; }
   // Формируем из файлов пронумерованных картинок и звукового команду для формирования видео
   MediaResourceLink = Format('%s -f image2 -r 1 -i "%s" -c:v libx264 -pix_fmt yuv420p ', [sFileMP3, sFileImage+'%03d.jpg']);
- 
+  
 }
 
 
@@ -326,8 +340,8 @@ void CreateSeriesFromPlaylist(THmsScriptMediaItem Folder, string sLink, string s
         }
         
         // Получаем случайную ссылку из списка указанных (т.е. если встречаются "or" или "and")
-        sLink = ReplaceStr(ReplaceStr(sLink, " or ", "|"), " \\or ", "|");       // Заменяем все ключевые слова между ссылками на знак "|"
-        sLink = ExtractWord(Int(Random * WordCount(sLink, "|"))+1, sLink, "|");  // Получаем случайную строку из списка строк, разделённых знаком "|"
+        // sLink = ReplaceStr(ReplaceStr(sLink, " or ", "|"), " \\or ", "|");       // Заменяем все ключевые слова между ссылками на знак "|"
+        //sLink = ExtractWord(Int(Random * WordCount(sLink, "|"))+1, sLink, "|");  // Получаем случайную строку из списка строк, разделённых знаком "|"
         
         // Если это серия сериала, пытаемся получить название серии из информации
         if (HmsRegExMatch2('s(\\d+)e(\\d+)', PLITEM.S['id'], s1, s2)) {
@@ -383,11 +397,42 @@ string BaseDecode(string sData) {
   return sResult;
 }
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Добавление или удаление сериала из/в избранное
+void AddRemoveFavorites() {
+  string sLink, sCmd, sID; THmsScriptMediaItem FavFolder, Item, Src; bool bExist;
+  
+  if (!HmsRegExMatch3('(Add|Del)=(.*?);(.*)', mpFilePath, sCmd, sID, sLink)) return;
+  FavFolder = HmsFindMediaFolder(Podcast.ItemID, 'favorites');
+  if (FavFolder!=nil) {
+    Item = HmsFindMediaFolder(FavFolder.ItemID, sLink);
+    bExist = (Item != nil);
+    if      ( bExist && (sCmd=='Del')) Item.Delete();
+    else if (!bExist && (sCmd=='Add')) {
+      Src = HmsFindMediaFolder(sID, sLink);
+      if (Src!=nil) {
+        Item = FavFolder.AddFolder(Src[mpiFilePath]);
+        Item.CopyProperties(Src, [mpiTitle, mpiThumbnail, mpiJsonInfo, mpiKPID]);
+      }
+    }
+  }
+  MediaResourceLink = ProgramPath()+'\\Presentation\\Images\\videook.mp4';
+  if (bExist) { mpTitle = "Добавить в избранное" ; mpFilePath = "-FavDel="+sLink; }
+  else        { mpTitle = "Удалить из избранного"; mpFilePath = "-FavDel="+sLink; }
+  PodcastItem[mpiTitle] = mpTitle;
+  PodcastItem.ItemOrigin.ItemParent[mpiTitle] = mpTitle;
+  PodcastItem[mpiFilePath] = mpFilePath;
+  PodcastItem.ItemOrigin.ItemParent[mpiFilePath] = mpFilePath;
+  HmsIncSystemUpdateID(); // Говорим устройству об обновлении содержания
+}
 ///////////////////////////////////////////////////////////////////////////////
 // Создание ссылок на видео-файл или серии
 void CreateLinks() {
-  String sHtml, sData, sErr, sError, sName, sLink, sID, sVal, sServ, sPage, sPost, sKey;
-  THmsScriptMediaItem Item; TStrings ADDINFO; TRegExpr RegExp; int i, nCount, n; TJsonObject JSON, TRANS;
+  String sHtml, sData,sPls, sErr, sError, sName, sLink, sID, sVal, sServ, sPage, sPost, sKey;
+  THmsScriptMediaItem Item; TStrings ADDINFO; TRegExpr RegExp; int i, nCount, n; TJsonObject JSON, TRANS,sPl;
   
   sHtml = HmsDownloadURL(mpFilePath, "Referer: "+gsHeaders);  // Загружаем страницу сериала
   sHtml = HmsUtf8Decode(HmsRemoveLineBreaks(sHtml));
@@ -413,7 +458,7 @@ void CreateLinks() {
     
     
   }
-      HmsRegExMatch('/y(\\d{4})"', sHtml, ADDINFO.Values['Year']);
+  HmsRegExMatch('/y(\\d{4})"', sHtml, ADDINFO.Values['Year']);
   if (HmsRegExMatch('(<a[^>]+genre.*?)</div>', sHtml, sVal)) ADDINFO.Values['Genre'] = HmsHtmlToText(sVal);
   if (HmsRegExMatch('<div class="about" itemprop="description"><div class="full-story">(.*?)</div>', sHtml, sVal)) ADDINFO.Values['Descr'] = HmsHtmlToText(sVal);
   if (HmsRegExMatch('<span class="video-in"><span>(.*?)</span></span>', sHtml, sVal)) ADDINFO.Values['Infos'] = HmsHtmlToText(sVal);;
@@ -442,6 +487,8 @@ void CreateLinks() {
   JSON  = TJsonObject.Create();
   try {
     JSON.LoadFromString(sData);
+    sPl = JSON['message\\translations'];
+    sPls = sPl.S['pl'];
     TRANS  = JSON['message\\translations\\video'];
     nCount = TRANS.Count; // Количество озвучек
     for (i=0; i<nCount; i++) {
@@ -467,8 +514,22 @@ void CreateLinks() {
       }
     }
     
+    
     if (nCount==0) ErrorItem(sError);
     
+    // Специальная папка добавления/удаления в избранное
+   // if (VIDEO.B['isserial'] && (Pos('--controlfavorites', mpPodcastParameters)>0)) {
+    if ((sPls=="yes") &&  (Pos('--controlfavorites', mpPodcastParameters)>0)) {
+      // Проверка, находится ли сериал в избранном?
+      Item = HmsFindMediaFolder(Podcast.ItemID, 'favorites');
+      if (Item!=nil) {
+        bool bExist = HmsFindMediaFolder(Item.ItemID, mpFilePath) != nil;
+        if (bExist) { sName = "Удалить из избранного"; sLink = "-FavDel="+PodcastItem.ItemParent.ItemID+";"+mpFilePath; }
+        else        { sName = "Добавить в избранное" ; sLink = "-FavAdd="+PodcastItem.ItemParent.ItemID+";"+mpFilePath; }
+        CreateMediaItem(PodcastItem, sName, sLink, 'http://wonky.lostcut.net/icons/ok.png', 1, sName);
+      }
+    } 
+   
   } finally { JSON.Free; }
   
   // Добавляем ссылку на трейлер, если есть
@@ -480,6 +541,9 @@ void CreateLinks() {
      Item[mpiTimeLength] = gnTime;
      
   }
+
+   
+   
 
    // Создаём информационные элементы (если указан ключ --videoinfoitems в дополнительных параметрах)
   
@@ -511,6 +575,7 @@ void CreateLinks() {
   
   } else {
     if (LeftCopy(mpFilePath, 13)=='-VideoPreview') {VideoPreview(); return;}
+    else if (LeftCopy(mpFilePath, 4)=='-Fav') {AddRemoveFavorites();return;}
     // Если это запустили файл на просмотр, присваиваем MediaResourceLink значение ссылки на видео-файл 
      if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
        string sResourceLink, sHtml, sData_Id, sData,sServ, sVal, sJson;
@@ -525,7 +590,7 @@ void CreateLinks() {
       
      
       string sQual;
-      if (HmsRegExMatch(',\\[\\d+\\D+\\].*?,\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
+      if (HmsRegExMatch(',\\[\\d+\\D+\\].*,\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
         MediaResourceLink = sQual;
       }else if (HmsRegExMatch(',\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
         MediaResourceLink = sQual;
