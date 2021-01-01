@@ -517,8 +517,7 @@ void CreateLinks() {
     
     if (nCount==0) ErrorItem(sError);
     
-    // Специальная папка добавления/удаления в избранное
-   // if (VIDEO.B['isserial'] && (Pos('--controlfavorites', mpPodcastParameters)>0)) {
+   // Специальная папка добавления/удаления в избранное в допю парамертах добавить ключ --controlfavorites  
     if ((sPls=="yes") &&  (Pos('--controlfavorites', mpPodcastParameters)>0)) {
       // Проверка, находится ли сериал в избранном?
       Item = HmsFindMediaFolder(Podcast.ItemID, 'favorites');
