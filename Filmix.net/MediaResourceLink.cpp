@@ -398,6 +398,28 @@ string BaseDecode(string sData) {
 }
 
 
+//////////////////////////////////////////////////
+/////////Создание ссылки на трейлер////////////////////////////
+void LinkTrailer (string sLink){
+  string sResourceLink, sHtml, sData_Id, sData,sServ, sVal, sJson;
+  if (HmsRegExMatch(gsUrlBase+'/.*?/(\\d+)/trailers', mpFilePath, sData_Id))
+    HmsRegExMatch('//(.*)', gsUrlBase, sServ);
+  int nPort = 80; if (gbHttps) nPort = 443;
+  sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sData_Id, nPort, 16, sVal, true);
+  //sData = HmsJsonDecode(sData); 
+  HmsRegExMatch('"trailers":\\s*\\{\\s*".*?":\\s*"(.*?)"', sData, sJson);
+  if (sJson == '') {HmsLogMessage(1, "Ошибка! Трейлер не доступен, или его нет на сайте!"); return;}
+  sResourceLink = BaseDecode(sJson);
+  
+  
+  string sQual;
+  if (HmsRegExMatch(',\\[\\d+\\D+\\].*,\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
+    MediaResourceLink = sQual;
+  }else if (HmsRegExMatch(',\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
+    MediaResourceLink = sQual;
+  }
+  
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -517,7 +539,8 @@ void CreateLinks() {
     
     if (nCount==0) ErrorItem(sError);
     
-   // Специальная папка добавления/удаления в избранное в допю парамертах добавить ключ --controlfavorites  
+    // Специальная папка добавления/удаления в избранное в доп. парамертах добавить ключ --controlfavorites
+   
     if ((sPls=="yes") &&  (Pos('--controlfavorites', mpPodcastParameters)>0)) {
       // Проверка, находится ли сериал в избранном?
       Item = HmsFindMediaFolder(Podcast.ItemID, 'favorites');
@@ -573,30 +596,11 @@ void CreateLinks() {
       CreateLinks();
   
   } else {
-    if (LeftCopy(mpFilePath, 13)=='-VideoPreview') {VideoPreview(); return;}
-    else if (LeftCopy(mpFilePath, 4)=='-Fav') {AddRemoveFavorites();return;}
-    // Если это запустили файл на просмотр, присваиваем MediaResourceLink значение ссылки на видео-файл 
-     if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
-       string sResourceLink, sHtml, sData_Id, sData,sServ, sVal, sJson;
-      if (HmsRegExMatch(gsUrlBase+'/.*?/(\\d+)/trailers', mpFilePath, sData_Id))
-        HmsRegExMatch('//(.*)', gsUrlBase, sServ);
-      int nPort = 80; if (gbHttps) nPort = 443;
-      sData = HmsSendRequestEx(sServ, '/api/movies/player_data', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, 'post_id='+sData_Id, nPort, 16, sVal, true);
-      //sData = HmsJsonDecode(sData); 
-      HmsRegExMatch('"trailers":\\s*\\{\\s*".*?":\\s*"(.*?)"', sData, sJson);
-      if (sJson == '') {HmsLogMessage(1, "Ошибка! Трейлер не доступен, или его нет на сайте!"); return;}
-      sResourceLink = BaseDecode(sJson);
-      
-     
-      string sQual;
-      if (HmsRegExMatch(',\\[\\d+\\D+\\].*,\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
-        MediaResourceLink = sQual;
-      }else if (HmsRegExMatch(',\\[\\d+\\D+\\](.*)', sResourceLink, sQual)) { 
-        MediaResourceLink = sQual;
-      }
-      
-    } else
-      MediaResourceLink = mpFilePath;
+    if (LeftCopy(mpFilePath, 13)=='-VideoPreview') {VideoPreview();  return;}
+    else if (LeftCopy(mpFilePath, 4)=='-Fav') {AddRemoveFavorites(); return;}
+    else if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
+                                               LinkTrailer(mpFilePath); return;
+  } else MediaResourceLink = mpFilePath;
     
   }
 }
