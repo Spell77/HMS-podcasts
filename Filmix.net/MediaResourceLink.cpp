@@ -71,9 +71,9 @@ bool LoginToFilmix() {
   
   if ((Trim(mpPodcastAuthorizationUserName)=='') ||
   (Trim(mpPodcastAuthorizationPassword)=='')) {
-    //ErrorItem('Не указан логин или пароль');
-    //return false;
-    return true; // Не включена авторизация - работаем так, без неё.
+    ErrorItem('Не указан логин или пароль');
+    return false;
+    //return true; // Не включена авторизация - работаем так, без неё.
   }
   
   sName = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationUserName)); // Логин
@@ -81,6 +81,7 @@ bool LoginToFilmix() {
   sPost = 'login_name='+sName+'&login_password='+sPass+'&login_not_save=1&login=submit';
   //sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
   sData = HmsSendRequestEx(sDomen, '/', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
+  //sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
   HmsRegExMatch('var dle_user_name="(.*?)";', sData, sNames);
   if (sName != sNames) {
     ErrorItem('Не прошла авторизация на сайте '+sDomen+'. Неправильный логин/пароль?');
@@ -259,6 +260,7 @@ void CreateVideoInfoItem(char sName, TStrings ADDINFO) {
   if (ADDINFO.Values['Time'     ]) sInfo += "<c:#FFC3BD>Длительность: </c>" +ADDINFO.Values["Time"     ]  + "|";
   if (ADDINFO.Values['Actors'   ]) sInfo += "<c:#FFC3BD>В ролях: </c>"      +ADDINFO.Values["Actors"   ]  + "|";
   if (ADDINFO.Values['Translate']) sInfo += "<c:#FFC3BD>Перевод: </c>"      +ADDINFO.Values["Translate"]  + "|";
+  if (ADDINFO.Values['New'      ]) sInfo += "<c:#FFC3BD>Новое: </c>"        +ADDINFO.Values["New"      ]  + "|";
   sInfo = Copy(sInfo, 1, Length(sInfo)-1);
   TStrings INFO = TStringList.Create();  
   INFO.Values['Poster'] = ADDINFO.Values['Poster'];
@@ -279,7 +281,8 @@ void AddVideoInfoItems(TStrings ADDINFO) {
   if (ADDINFO.Values['Time'     ]) CreateVideoInfoItem('Время фильма/серии: '  +ADDINFO.Values['Time'    ], ADDINFO);
   if (ADDINFO.Values['Infos'    ]) CreateVideoInfoItem('Info: '                +ADDINFO.Values['Infos'   ], ADDINFO);
   if (ADDINFO.Values['Rating'   ]) CreateVideoInfoItem('IMDB: '                +ADDINFO.Values['Rating'  ], ADDINFO);
-  if (ADDINFO.Values['Quality'  ]) CreateVideoInfoItem('Kачествo: '            +ADDINFO.Values['Quality'  ], ADDINFO);
+  if (ADDINFO.Values['Quality'  ]) CreateVideoInfoItem('Kачествo: '            +ADDINFO.Values['Quality' ], ADDINFO);
+  if (ADDINFO.Values['New'      ]) CreateVideoInfoItem('Добавлено: '           +ADDINFO.Values['New'     ], ADDINFO);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // ---- Создание ссылок на файл(ы) по переданной ссылке (шаблону) -------------
@@ -477,11 +480,12 @@ void CreateLinks() {
       gnTime =  HmsTimeFormat(StrToInt(sVal)*60)+'.000'; // Из-за того что серии иногда длинее, добавляем пару минут
     }
     ADDINFO.Values['Time'   ] = gnTime;
-    
-    
+   
   }
-  HmsRegExMatch('/y(\\d{4})"', sHtml, ADDINFO.Values['Year']);
+  
+      HmsRegExMatch('/y(\\d{4})"', sHtml, ADDINFO.Values['Year']);
   if (HmsRegExMatch('(<a[^>]+genre.*?)</div>', sHtml, sVal)) ADDINFO.Values['Genre'] = HmsHtmlToText(sVal);
+  if (HmsRegExMatch('<span class="added-info">(.*?)\\s+<i', sHtml, sVal)) ADDINFO.Values['New'] = HmsHtmlToText(sVal);
   if (HmsRegExMatch('<div class="about" itemprop="description"><div class="full-story">(.*?)</div>', sHtml, sVal)) ADDINFO.Values['Descr'] = HmsHtmlToText(sVal);
   if (HmsRegExMatch('<span class="video-in"><span>(.*?)</span></span>', sHtml, sVal)) ADDINFO.Values['Infos'] = HmsHtmlToText(sVal);;
   if (HmsRegExMatch('Страна:(.*?)</div'   , sHtml, sVal)) ADDINFO.Values['Country'] = HmsHtmlToText(sVal);
