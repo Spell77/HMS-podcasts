@@ -138,7 +138,7 @@ void CreateVideoFolders() {
   } else if ((LeftCopy(mpFilePath, 4)!='http')&&(LeftCopy(mpFilePath, 1)!='/')) {
     HmsUtf8Decode(HmsDownloadUrl(gsUrlBase)); // для установки кук
     // Если в поле "Ссылка" нет реальной ссылки, то делаем ссылку сами - будем искать наименование
-    mpFilePath = 'scf=fx&story='+HmsHttpEncode(HmsUtf8Encode(mpTitle))+'&search_start=0&do=search&subaction=search&years_ot=1902&years_do=2019&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1';
+    mpFilePath = 'scf=fx&story='+HmsPercentEncode(HmsUtf8Encode(mpTitle))+'&search_start=0&do=search&subaction=search&years_ot=1902&years_do=2019&kpi_ot=1&kpi_do=10&imdb_ot=1&imdb_do=10&sort_name=&undefined=asc&sort_date=&sort_favorite=&simple=1';
     gsPatternPages = '.*list_submit2\\((\\d+)';
     gsPagesParam   = '&search_start=<PN>';
     bPost  = true;
