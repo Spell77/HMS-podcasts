@@ -156,6 +156,11 @@ void CreateVideoFolders() {
     sHtml = HmsUtf8Decode(HmsDownloadUrl(mpFilePath));
   }
   
+  if (Pos("По вашему запросу ничего не найдено", sHtml)){
+    ErrorItem('По вашему запросу ничего не найдено!');
+    return; 
+  }
+  
   // Дозагрузка страниц (если задан шаблон поиска максимального номера сраницы)
   if ((gsPatternPages!='') && HmsRegExMatch(gsPatternPages, sHtml, sVal, 1, PCRE_SINGLELINE)) {
     nPages = StrToInt(sVal); // Номер последней страницы
