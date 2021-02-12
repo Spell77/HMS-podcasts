@@ -72,8 +72,8 @@ bool LoginToFilmix() {
   if ((Trim(mpPodcastAuthorizationUserName)=='') ||
   (Trim(mpPodcastAuthorizationPassword)=='')) {
     ErrorItem('Не указан логин или пароль');
-    return false;
-    //return true; // Не включена авторизация - работаем так, без неё.
+    //return false;
+    return true; // Не включена авторизация - работаем так, без неё.
   }
   
   sName = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationUserName)); // Логин
@@ -186,7 +186,7 @@ bool VideoPreview() {
   if (sTitle=='') sTitle = ' ';
   ForceDirectories(sCacheDir);
   sFileImage = ExtractShortPathName(sCacheDir)+'videopreview_'; // Файл-заготовка для сохранения картинки
-  sDescr = Copy(sDescr, 1, 3000); // Если блок описания получился слишком большой - обрезаем
+  sDescr = Copy(sDescr, 1, 10000); // Если блок описания получился слишком большой - обрезаем
   
   INFO.Text = ""; // Очищаем объект TStrings для формирования параметров запроса
   INFO.Values['prfx' ] = gsPreviewPrefix;  // Префикс кеша сформированных картинок на сервере
@@ -238,7 +238,7 @@ bool VideoPreview() {
   } except { sFileMP3=''; }
   // Формируем из файлов пронумерованных картинок и звукового команду для формирования видео
   MediaResourceLink = Format('%s -f image2 -r 1 -i "%s" -c:v libx264 -pix_fmt yuv420p ', [sFileMP3, sFileImage+'%03d.jpg']);
-  
+  MediaResourceLink = MediaResourceLink;
 }
 
 
@@ -260,7 +260,8 @@ void CreateVideoInfoItem(char sName, TStrings ADDINFO) {
   if (ADDINFO.Values['Time'     ]) sInfo += "<c:#FFC3BD>Длительность: </c>" +ADDINFO.Values["Time"     ]  + "|";
   if (ADDINFO.Values['Actors'   ]) sInfo += "<c:#FFC3BD>В ролях: </c>"      +ADDINFO.Values["Actors"   ]  + "|";
   if (ADDINFO.Values['Translate']) sInfo += "<c:#FFC3BD>Перевод: </c>"      +ADDINFO.Values["Translate"]  + "|";
-  if (ADDINFO.Values['New'      ]) sInfo += "<c:#FFC3BD>Новое: </c>"        +ADDINFO.Values["New"      ]  + "|";
+  if (ADDINFO.Values['New'      ]) sInfo += "<c:#FFC3BD>Добавлено: </c>"    +ADDINFO.Values["New"      ]  + "|";
+  if (ADDINFO.Values['Limit'    ]) sInfo += "<c:#FFC3BD>Ограничение: </c>"  +ADDINFO.Values["Limit"    ]  + "|";
   sInfo = Copy(sInfo, 1, Length(sInfo)-1);
   TStrings INFO = TStringList.Create();  
   INFO.Values['Poster'] = ADDINFO.Values['Poster'];
@@ -283,6 +284,7 @@ void AddVideoInfoItems(TStrings ADDINFO) {
   if (ADDINFO.Values['Rating'   ]) CreateVideoInfoItem('IMDB: '                +ADDINFO.Values['Rating'  ], ADDINFO);
   if (ADDINFO.Values['Quality'  ]) CreateVideoInfoItem('Kачествo: '            +ADDINFO.Values['Quality' ], ADDINFO);
   if (ADDINFO.Values['New'      ]) CreateVideoInfoItem('Добавлено: '           +ADDINFO.Values['New'     ], ADDINFO);
+  if (ADDINFO.Values['Limit'    ]) CreateVideoInfoItem('Ограничение: '         +ADDINFO.Values['Limit'   ], ADDINFO);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // ---- Создание ссылок на файл(ы) по переданной ссылке (шаблону) -------------
@@ -296,8 +298,10 @@ void CreateVideoLinks(THmsScriptMediaItem Folder, string sName, string sLink, bo
       HmsRegExMatch('(\\[.*?\\])(.*)', sUrl, sQual); // Получаем название качества
       if (bSeparateInFolders)                        // Если установлен флаг распихивания разного качества по папкам
         AddMediaItem(Folder, sName, sUrl, sQual);    // - то создаём ссылку в папке с названием качества
-      else                                           // Иначе просто создаём ссылку, впереди названия которой будет указано качество
+      else   {         // Иначе просто создаём ссылку, впереди названия которой будет указано качество
+        sQual= ReplaceStr(sQual, '[1080 HD]', '[1080HD]');
         AddMediaItem(Folder, Trim(sQual+' '+sName), sUrl);
+      }
     }
   } finally { LIST.Free; } // Освобождаем объект из памяти
 }
@@ -378,6 +382,20 @@ void CreateSeriesFromPlaylist(THmsScriptMediaItem Folder, string sLink, string s
   } finally { JSON.Free; INFO.Free; } // Какие бы ошибки не случились, освобождаем объект из памяти
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// POST запрос для метки П с переданными параметрами
+string FilmixmAPI(string sPost) {
+  string sData, sRet;
+  int nPort = 443; if (Pos('--https', mpPodcastParameters)<1) nPort = 80;
+  sData = HmsSendRequestEx('filmix.co', '/api/v2/movie/view_time', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsUrlBase, sPost, nPort, 0x10, sRet, true);
+  return sData;
+}
+
+// Пометка просмотренной серии 
+string MarkView(string sID) {
+  if (sID!='')
+    FilmixmAPI("add_item="+sID+"&time=0");
+}
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 // Декодирование Base64 с предворительной очисткой от мусора
@@ -385,7 +403,7 @@ string BaseDecode(string sData) {
   string sPost,sDomen,Garbage1,Garbage2,Garbage3,Garbage4,Garbage5;
   HmsRegExMatch('#2(.*)', sData, sData);
   if(Garbage1==''){
-    sPost = 'https://moon.cx.ua/filmix/key.php';
+    sPost = 'http://moon.cx.ua/filmix/key.php';
     sDomen = HmsDownloadURL(sPost, 'Referer: '+mpFilePath, true);
   }
   HmsRegExMatch('"1":\\s"([^"]+)"' , sDomen, Garbage1);
@@ -477,7 +495,7 @@ void CreateLinks() {
   ADDINFO = TstringList.Create();
   if (HmsRegExMatch('Время:(.*?)</span>\\s</div>', sHtml, sData)) {
     if (HmsRegExMatch('(\\d+)\\s+мин', ' '+sData, sVal)) {
-      gnTime =  HmsTimeFormat(StrToInt(sVal)*60)+'.000'; // Из-за того что серии иногда длинее, добавляем пару минут
+      gnTime =  HmsTimeFormat(StrToInt(sVal)*60); // Из-за того что серии иногда длинее, добавляем пару минут
     }
     ADDINFO.Values['Time'   ] = gnTime;
    
@@ -489,9 +507,10 @@ void CreateLinks() {
   if (HmsRegExMatch('<div class="about" itemprop="description"><div class="full-story">(.*?)</div>', sHtml, sVal)) ADDINFO.Values['Descr'] = HmsHtmlToText(sVal);
   if (HmsRegExMatch('<span class="video-in"><span>(.*?)</span></span>', sHtml, sVal)) ADDINFO.Values['Infos'] = HmsHtmlToText(sVal);;
   if (HmsRegExMatch('Страна:(.*?)</div'   , sHtml, sVal)) ADDINFO.Values['Country'] = HmsHtmlToText(sVal);
-  if (HmsRegExMatch('Режиссер:(.*?)</div', sHtml, sVal)) ADDINFO.Values['Director'] = HmsHtmlToText(sVal);
-  if (HmsRegExMatch('Перевод:(.*?)</div', sHtml, sVal)) ADDINFO.Values['Translate'] = (HmsHtmlToText(sVal));
+  if (HmsRegExMatch('Режиссер:(.*?)</div' , sHtml, sVal)) ADDINFO.Values['Director'] = HmsHtmlToText(sVal);
+  if (HmsRegExMatch('Перевод:(.*?)</div'  , sHtml, sVal)) ADDINFO.Values['Translate'] = (HmsHtmlToText(sVal));
   if (HmsRegExMatch('В ролях:(.*?)</div'  , sHtml, sVal)) ADDINFO.Values['Actors'] = (HmsHtmlToText(sVal));
+  if (HmsRegExMatch('MPAA:(.*?)</div'     , sHtml, sVal)) ADDINFO.Values['Limit'] = (HmsHtmlToText(sVal));
   if (HmsRegExMatch('(<div[^>]+quality.*?)</div'  , sHtml, sVal)) ADDINFO.Values['Quality'] = (HmsHtmlToText(sVal));
   if (HmsRegExMatch2('<span[^>]+imdb.*?<p>(.*?)</p>.*?<p>(.*?)</p>', sHtml, sName, sVal)) {
     if ((sName!='-') && (sName!='0')) ADDINFO.Values['Rating'] = (sName+" ("+sVal+")");
@@ -578,8 +597,13 @@ void CreateLinks() {
     else CreateVideoInfoItem('Информация о видео', ADDINFO);
   }
   
+  
+ 
+  ///////////////////////////////////////////////////////////////////////////////
+  
   ADDINFO.Free();
-}
+  return;
+} //end CreateLinks
 
 ///////////////////////////////////////////////////////////////////////////////
 //                      Г Л А В Н А Я   П Р О Ц Е Д У Р А                    //
@@ -604,12 +628,36 @@ void CreateLinks() {
     else if (LeftCopy(mpFilePath, 4)=='-Fav') {AddRemoveFavorites(); return;}
     else if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
                                                LinkTrailer(mpFilePath); return;
-  } else MediaResourceLink = mpFilePath;
+   } else {
+                                  
+    if ((Pos('--markonplay', mpPodcastParameters)>0) && (Pos('[П]', mpTitle)<1)) {
+     THmsScriptMediaItem Item;  string sHtml, sVal, sName ;
+    // Придёться загрузить страницу сериала. Ищем ссылку на сам сериал.
+    Item = PodcastItem;
+    while ((Item!=nil) && (Pos("/filmi/", Item[mpiFilePath])<1) && (Pos("/seria/", Item[mpiFilePath])<1)) Item = Item.ItemParent;
+    if (Item!=nil) {
+      // Загружаем страницу сериала
+      sHtml = HmsDownloadURL(Item[mpiFilePath], "Referer: "+gsHeaders, true);
+      // Получаем значение session
+      HmsRegExMatch('data-id-post="(\\d+)"', sHtml, sVal); 
+      // Почечаем серию как просмотренную
+      MarkView(sVal);
+    }
+    
+    
+    if (HmsRegExMatch2('(\\d+)\\s+(.*)', mpTitle, sVal, sName)) {
+      PodcastItem.ItemOrigin[mpiTitle] = Format('%.2d [П] %s', [StrToInt(sVal), sName]);
+      HmsIncSystemUpdateID();
+    } else {
+      HmsRegExMatch2('(\\[\\d+\\D+\\])\\s+(.*)', mpTitle, sVal, sName);
+      PodcastItem.ItemOrigin[mpiTitle] = Format('%s [П] %s', [sVal, sName]);
+                                                   HmsIncSystemUpdateID();
+           }
+         }
+                                                
+      }
     
   }
+  MediaResourceLink = mpFilePath;
 }
-      
-      
-      
-      
-     
+  
