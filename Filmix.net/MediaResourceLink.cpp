@@ -656,8 +656,8 @@ void CreateLinks() {
          }
                                                 
       }
-    
+    MediaResourceLink = mpFilePath;
   }
-  MediaResourceLink = mpFilePath;
+  
 }
   
