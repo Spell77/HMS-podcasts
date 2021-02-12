@@ -186,7 +186,7 @@ bool VideoPreview() {
   if (sTitle=='') sTitle = ' ';
   ForceDirectories(sCacheDir);
   sFileImage = ExtractShortPathName(sCacheDir)+'videopreview_'; // Файл-заготовка для сохранения картинки
-  sDescr = Copy(sDescr, 1, 10000); // Если блок описания получился слишком большой - обрезаем
+  sDescr = Copy(sDescr, 1, 5000); // Если блок описания получился слишком большой - обрезаем
   
   INFO.Text = ""; // Очищаем объект TStrings для формирования параметров запроса
   INFO.Values['prfx' ] = gsPreviewPrefix;  // Префикс кеша сформированных картинок на сервере
