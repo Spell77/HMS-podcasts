@@ -286,7 +286,7 @@ void CheckPodcastUpdate() {
     return;
   } 
   
-  if ((Pos('--nocheckupdates' , mpPodcastParameters)<1)) CheckPodcastUpdate(); // Проверка обновлений подкаста
+  if ((Pos('--nocheckupdates' , mpPodcastParameters)>1)) CheckPodcastUpdate(); // Проверка обновлений подкаста
   HmsRegExMatch('^(.*?//[^/]+)', Podcast[mpiFilePath], gsUrlBase); // Получаем значение в gsUrlBase
   gbHttps = (LeftCopy(gsUrlBase, 5)=='https');                     // Флаг использования 443 порта для запросов
   FolderItem.DeleteChildItems(); // Удаляем созданное ранее содержимое
