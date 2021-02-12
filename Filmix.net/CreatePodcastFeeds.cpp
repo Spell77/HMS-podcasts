@@ -26,6 +26,7 @@ THmsScriptMediaItem CreatePodcast(THmsScriptMediaItem Folder, string sName, stri
   Item  = Folder.AddFolder(sLink);         // Создаём подкаст с указанной ссылкой
   Item[mpiTitle] = sName;                  // Присваиваем наименование
   Item[mpiPodcastParameters] = sParams;    // Дополнительные параметры подкаста
+  Item[mpiFolderSortOrder] = mpiTitle;
   return Item;
 }
 
@@ -43,29 +44,25 @@ THmsScriptMediaItem CreateDynamicItem(THmsScriptMediaItem prntItem, char sTitle,
   Folder[mpiFolderSortOrder] = -mpiCreateDate;
   return Folder;
 }
-/*
-///////////////////////////////////////////////////////////////////////////////
-// Удаление всех существующих разделов(перед созданием) кроме поиска
-void DeleteFolders() {
-  THmsScriptMediaItem Item, FavFolder; int i, nAnsw;
-  for (i=FolderItem.ChildCount-1; i>=0; i--) {
-    Item = FolderItem.ChildItems[i]; if (Item[mpiFilePath]=='-SearchFolder') continue;
-    Item.Delete();
-  }
-}
-*/
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Удаление существующих разделов (перед созданием)
 bool DeleteFolders() {
-  THmsScriptMediaItem Item, FavFolder; int i, nAnsw;
+  THmsScriptMediaItem Item, FavFolder,FavFolders; int i, nAnsw,nAnsw1;
   FavFolder = HmsFindMediaFolder(FolderItem.ItemID, 'favorites');
-  if (FavFolder==nil) { FolderItem.DeleteChildItems(); return true; }
+  FavFolders = HmsFindMediaFolder(FolderItem.ItemID, '/favorites');
+  if (FavFolder!=nil) { FolderItem.DeleteChildItems();  return true;}
+  if (FavFolder!=nil)
+  nAnsw = MessageDlg('Очистить папку "Избранное"?', mtConfirmation, mbYes+mbNo+mbCancel, 0);
+  
+  if (FavFolders!=nil) { FolderItem.DeleteChildItems(); return true; }
+  if (FavFolders!=nil)
   nAnsw = MessageDlg('Очистить папку "Избранное"?', mtConfirmation, mbYes+mbNo+mbCancel, 0);
   if (nAnsw== mrCancel) return false;
   for (i=FolderItem.ChildCount-1; i>=0; i--) {
     Item = FolderItem.ChildItems[i]; if (Item[mpiFilePath]=='-SearchFolder') continue;
-    if ((Item==FavFolder) && (nAnsw==mrNo)) continue;
+    if ((Item==FavFolder) && (Item==FavFolders)  && (nAnsw==mrNo)) continue;
     Item.Delete();
   }
   return true;
@@ -73,7 +70,7 @@ bool DeleteFolders() {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Создание папки ПОИСК (с загрузкой скрипта с форума homemediaserver.ru)
-void CreateSearchFolder(THmsScriptMediaItem prntItem, char sTitle) {
+void CreateSearchFolder (THmsScriptMediaItem prntItem, char sTitle) {
   char sScript='', sLink, sHtml, sRE, sVal; THmsScriptMediaItem Folder;
   
   // Да да, загружаем скрипт с сайта форума HMS
@@ -118,15 +115,18 @@ THmsScriptMediaItem CreateItem(THmsScriptMediaItem Parent, string sTitle="", str
 void CreateStructure() {
   string sHtml, sData,sPro, sName, sLink; TRegExpr RegEx, RegExs;         // Объявляем переменные
   THmsScriptMediaItem Folder, Item;
- 
-  CreateSearchFolder (FolderItem, '0. Поиск');
-  CreatePodcast(FolderItem, '1. Избранное'          , 'favorites');
+  sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
+  sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
+  CreateSearchFolder(FolderItem, '0. Поиск');
+  
+   HmsRegExMatch('var dle_user_name="(.*?)";', sHtml, sData);
+  if (sData!='') CreatePodcast(FolderItem, '1. Избранное'   , '/favorites');
+  else CreatePodcast(FolderItem, '01. Избранное'            , 'favorites');
   CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
   CreatePodcast(FolderItem, '3. Популярные фильмы'    , '/popular/films'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
   CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
-  sHtml = HmsUtf8Decode(HmsDownloadUrl(gsUrlBase));  // Загружаем страницу
-  sHtml = HmsRemoveLineBreaks(sHtml);                // Удаляем переносы строк
+  
   HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro); // Проверка аккаунта Pro +
   CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
   if(sPro=='1'){
