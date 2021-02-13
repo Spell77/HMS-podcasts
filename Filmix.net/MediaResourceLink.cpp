@@ -498,7 +498,7 @@ void CreateLinks() {
       gnTime =  HmsTimeFormat(StrToInt(sVal)*60); // Из-за того что серии иногда длинее, добавляем пару минут
     }
     ADDINFO.Values['Time'   ] = gnTime;
-   
+   PodcastItem[mpiTimeLength] = gnTime;
   }
   
       HmsRegExMatch('/y(\\d{4})"', sHtml, ADDINFO.Values['Year']);
