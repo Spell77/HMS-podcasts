@@ -83,12 +83,12 @@ bool LoginToFilmix() {
   sData = HmsSendRequestEx(sDomen, '/', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
   //sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', gsHeaders, sPost, nPort, nFlags, sRet, true);
   HmsRegExMatch('var dle_user_name="(.*?)";', sData, sNames);
-  if (sName != sNames) {
-    ErrorItem('Не прошла авторизация на сайте '+sDomen+'. Неправильный логин/пароль?');
-    return false;  
-  }
+  if (sName == sNames) 
+    //ErrorItem('Не прошла авторизация на сайте '+sDomen+'. Неправильный логин/пароль?');
+    return true;  
   
-  return true;
+  
+  //return true;
 }
 
 ////
@@ -628,9 +628,7 @@ void CreateLinks() {
     else if (LeftCopy(mpFilePath, 4)=='-Fav') {AddRemoveFavorites(); return;}
     else if (HmsRegExMatch('/(trejlery|trailers)', mpFilePath, '')) {
                                                LinkTrailer(mpFilePath); return;
-   } else {
-                                  
-    if ((Pos('--markonplay', mpPodcastParameters)>0) && (Pos('[П]', mpTitle)<1)) {
+  } else if ((Pos('--markonplay', mpPodcastParameters)>0) && (Pos('[П]', mpTitle)<1)) {
      THmsScriptMediaItem Item;  string sHtml, sVal, sName ;
     // Придёться загрузить страницу сериала. Ищем ссылку на сам сериал.
     Item = PodcastItem;
