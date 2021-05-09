@@ -121,7 +121,7 @@ void CreateStructure() {
   
    HmsRegExMatch('var dle_user_name="(.*?)";', sHtml, sData);
   if (sData!='') CreatePodcast(FolderItem, '1. Избранное'   , '/favorites');
-  else CreatePodcast(FolderItem, '01. Избранное'            , 'favorites');
+  else CreatePodcast(FolderItem, '01. Избранное'            , 'favorite');
   CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
   CreatePodcast(FolderItem, '3. Популярные фильмы'    , '/popular'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
