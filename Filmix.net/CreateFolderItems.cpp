@@ -77,7 +77,7 @@ void ErrorItem(string sMsg) {
 //////////////////////////////////////////////////////////////////////////////
 // Авторизация на сайте
 bool Login() {
-  string sUser, sPass, sLink, sData, sPost, sRet, sCookie, sHeaders, sDomen;
+  string sUser, sNames, sPass, sLink, sData, sPost, sRet, sCookie, sHeaders, sDomen;
   HmsRegExMatch('//([^/]+)', gsUrlBase, sDomen);
   int nPort  = 80; if (gbHttps) nPort = 443;
   int nFlags = 0x10; // INTERNET_COOKIE_THIRD_PARTY;
@@ -94,14 +94,16 @@ bool Login() {
   
   sUser = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationUserName)); // Логин
   sPass = HmsHttpEncode(HmsUtf8Encode(mpPodcastAuthorizationPassword)); // Пароль
-  sUser = ReplaceStr(sUser, "@", "%2540");
+  //sUser = ReplaceStr(sUser, "@", "%2540");
   sPost = 'login_name='+sUser+'&login_password='+sPass+"&login_not_save=1&login=submit";
   sData = HmsSendRequestEx(sDomen, '/engine/ajax/user_auth.php', 'POST', 'application/x-www-form-urlencoded; charset=UTF-8', sHeaders, sPost, nPort, nFlags, sRet, true);
-  sData = HmsUtf8Decode(sData);
-  if (HmsRegExMatch('AUTHORIZED', sData, '')) return true;
-  
-  ErrorItem('Введён неправильный логин или пароль');
-  return false;  
+  HmsRegExMatch('var dle_user_name="([^"]+)";', sData, sNames);
+  if (sUser == sNames) {
+    return true; 
+  }
+
+ // ErrorItem('Введён неправильный логин или пароль');
+  //return false;  
 }
 
 ///////////////////////////////////////////////////////////////////////////////
