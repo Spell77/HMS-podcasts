@@ -123,16 +123,16 @@ void CreateStructure() {
   if (sData!='') CreatePodcast(FolderItem, '1. Избранное'   , '/favorites');
   else CreatePodcast(FolderItem, '01. Избранное'            , 'favorites');
   CreatePodcast(FolderItem, '2. Последние поступления', '/'); 
-  CreatePodcast(FolderItem, '3. Популярные фильмы'    , '/popular/films'); 
+  CreatePodcast(FolderItem, '3. Популярные фильмы'    , '/popular'); 
   CreatePodcast(FolderItem, '4. Мультфильмы'          , '/multfilms/');
   CreatePodcast(FolderItem, '5. Мультсериалы'         , '/multserialy/', '--pages=10');
   
   HmsRegExMatch('var user_data\\s+=\\s\\{.*is_user_pro_plus:\\s(\\d+)\\};', sHtml, sPro); // Проверка аккаунта Pro +
-  CreatePodcast(FolderItem, '6. Сериалы'              , '/serials/');
+  CreatePodcast(FolderItem, '6. Сериалы'              , '/seria/');
   if(sPro=='1'){
-    CreatePodcast(FolderItem, '6а. 4k'                , '/serials/q4/');
-    CreatePodcast(FolderItem, '6b. 2k'                , '/serials/q2/');
-    CreatePodcast(FolderItem, '6c. 1080'              , '/serials/qh/');  
+    CreatePodcast(FolderItem, '6а. 4k'                , '/seria/q4/');
+    CreatePodcast(FolderItem, '6b. 2k'                , '/seria/q2/');
+    CreatePodcast(FolderItem, '6c. 1080'              , '/seria/qh/');  
   }
   //Folder[mpiPodcastParameters] = '--maxpages=20';
   Folder = FolderItem.AddFolder('7. По категориям сериалы', true);    // Создаём папку
@@ -154,11 +154,11 @@ void CreateStructure() {
   } finally { RegExs.Free(); }         // Освобождаем объект из памяти
   
   
-  CreatePodcast(FolderItem, '8. Фильмы'               , '/filmy/'); // Создаём подкаст
+  CreatePodcast(FolderItem, '8. Фильмы'               , '/filmi/'); // Создаём подкаст
   if(sPro=='1'){
-  CreatePodcast(FolderItem, '8а. 4k'                  , '/filmy/q4/');
-  CreatePodcast(FolderItem, '8b. 2k'                  , '/filmy/q2/');
-  CreatePodcast(FolderItem, '8c. 1080'                , '/filmy/qh/');  
+  CreatePodcast(FolderItem, '8а. 4k'                  , '/filmi/q4/');
+  CreatePodcast(FolderItem, '8b. 2k'                  , '/filmi/q2/');
+  CreatePodcast(FolderItem, '8c. 1080'                , '/filmi/qh/');  
 }
   Folder = FolderItem.AddFolder('9. По категориям фильмы', true);    // Создаём папку
   // Вырезаем нужный блок в переменную sData
